@@ -3,7 +3,7 @@ from manimlib import *
 # Sierpinski tetrahedron adaptation in manim from Ben Spark's video "Fractal Tetrahedron Live Build"
 
 # Functions
-def construct_tetrahedron(cube, color=YELLOW, opacity=1):
+def construct_tetrahedron(cube, color=YELLOW, opacity=0.5):
     
     corners = cube.get_all_corners()
     tetrahedron = VGroup(
@@ -35,58 +35,43 @@ def construct_tetrahedron(cube, color=YELLOW, opacity=1):
     
     return tetrahedron
 
-def tetrahedron_division(cube, scale_factor, color=BLUE, smaller=False):
-    cube = cube.scale(scale_factor)
+def nth_iteration_cubes(iterations, scale_factor, cubes=False):
+    iterations -= 1
 
-    if smaller:
-        smaller_tetrahedrons = VGroup()
-        for n in range(4):
-            little_tetrahedron = construct_smaller_tetrahedron(cube, scale_factor=scale_factor, color=color)
-            if n == 1:
-                little_tetrahedron.shift(scale_factor * (LEFT + DOWN + IN))
-            elif n == 2:
-                little_tetrahedron.shift(scale_factor * (RIGHT + DOWN + OUT))
-            elif n == 3:
-                little_tetrahedron.shift(scale_factor * (RIGHT + UP + IN))
-            else:
-                little_tetrahedron.shift(scale_factor * (LEFT + UP + OUT))
-            
-            smaller_tetrahedrons.add(little_tetrahedron)
-    else:
-        smaller_tetrahedrons = VGroup()
-        for n in range(4):
-            little_tetrahedron = construct_tetrahedron(cube, color=color)
-            if n == 1:
-                little_tetrahedron.shift(scale_factor * (LEFT + DOWN + IN))
-            elif n == 2:
-                little_tetrahedron.shift(scale_factor * (RIGHT + DOWN + OUT))
-            elif n == 3:
-                little_tetrahedron.shift(scale_factor * (RIGHT + UP + IN))
-            else:
-                little_tetrahedron.shift(scale_factor * (LEFT + UP + OUT))
-            
-            smaller_tetrahedrons.add(little_tetrahedron)
+    if cubes is False:
+        cubes = Group(Cube())
     
-    return smaller_tetrahedrons
-
-def construct_smaller_tetrahedron(cube, scale_factor, color=BLUE):
-    smaller_cube = cube
-    
-    smaller_tetrahedrons = VGroup()
+    new_scaled_cubes = Group()
     for n in range(4):
-        little_tetrahedron = construct_tetrahedron(smaller_cube, color=color)
+        previous_scaled_cubes = cubes.copy()
+        previous_scaled_cubes.scale(scale_factor)
         if n == 1:
-            little_tetrahedron.shift(scale_factor**2 * (LEFT + DOWN + IN))
+            previous_scaled_cubes.shift(scale_factor * (LEFT + DOWN + IN))
         elif n == 2:
-            little_tetrahedron.shift(scale_factor**2 * (RIGHT + DOWN + OUT))
+            previous_scaled_cubes.shift(scale_factor * (RIGHT + DOWN + OUT))
         elif n == 3:
-            little_tetrahedron.shift(scale_factor**2 * (RIGHT + UP + IN))
+            previous_scaled_cubes.shift(scale_factor * (RIGHT + UP + IN))
         else:
-            little_tetrahedron.shift(scale_factor**2 * (LEFT + UP + OUT))
+            previous_scaled_cubes.shift(scale_factor * (LEFT + UP + OUT))
         
-        smaller_tetrahedrons.add(little_tetrahedron)
+        new_scaled_cubes.add(previous_scaled_cubes)
+
     
-    return smaller_tetrahedrons
+    if iterations != 0:
+        return nth_iteration_cubes(iterations, scale_factor, cubes=new_scaled_cubes)
+    else:
+        return new_scaled_cubes
+
+def construct_sierpinski_tetrahedron(iterations, scale_factor):
+    matryoshka_cubes_group = nth_iteration_cubes(iterations, scale_factor).get_family()
+    cubes = [cube for cube in matryoshka_cubes_group if isinstance(cube, Cube)]
+
+    nth_iteration_tetrahedrons = VGroup()
+    for cube in cubes:
+        new_tetrahedron = construct_tetrahedron(cube)
+        nth_iteration_tetrahedrons.add(new_tetrahedron)
+    
+    return nth_iteration_tetrahedrons
 
 
 # Scene
@@ -95,21 +80,15 @@ class SierpinskiTetrahedron(InteractiveScene):
         
         # Set up 3D Space
         axes = ThreeDAxes()
-        self.add(axes)
 
         frame = self.frame
-        frame.reorient(50, 100, 1, (1, 1, 1), 3.8)
+        frame.reorient(50, 60, 1, ORIGIN, 3.8)
 
-        # Build initial tetrahedron
-        cube = Cube(opacity=0.5)
-        cube.shift(RIGHT + UP + OUT)
+        # Build Sierpinski tetrahedron
+        iterations_ = 4
+        scale_factor_ = 0.5
 
-        tetrahedron = construct_tetrahedron(cube)
-
-        smaller_tetrahedrons = tetrahedron_division(cube, scale_factor=0.5, color=BLUE)
-
-        even_smaller_tetrahedrons = tetrahedron_division(cube, scale_factor=0.5, color=GREY, smaller=True)
-        self.add(even_smaller_tetrahedrons)
-
+        sierpinski_tetrahedron_ = construct_sierpinski_tetrahedron(iterations=iterations_, scale_factor=scale_factor_)
+        self.add(sierpinski_tetrahedron_)
     
     # The End
